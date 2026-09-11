@@ -1,2 +1,0 @@
-Control Name,Category,Likelihood,Impact,Effort,Status,Risk Score,Priority Score,Priority Level
-Enforce SSH key-based authentication (disable password login),Access Control,3,3,2,Non-compliant,9,4.5,Medium
