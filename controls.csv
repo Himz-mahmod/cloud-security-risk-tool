@@ -1,0 +1,21 @@
+Control Name,Category,Typical Benefit for Small Orgs
+Enforce SSH key-based authentication (disable password login),Access Control,Quick to configure and blocks the most common brute-force attack path on Linux servers.
+Restrict or disable direct root SSH login,Access Control,One config change removes a high-value attack target with almost no operational cost.
+Enable multi-factor authentication for the cloud provider console,Identity & Access Management,Stops most account-takeover attacks even if a password is leaked; low effort with big payoff.
+Limit sudo privileges using role-based access,Access Control,Reduces blast radius if one account is compromised; simple to set up for a small team.
+Rotate cloud API keys and secrets on a schedule,Identity & Access Management,Limits how long a leaked credential stays useful to an attacker.
+Enable automatic OS security updates,Patch Management,Closes known vulnerabilities automatically without needing dedicated staff time.
+Maintain a patch schedule for third-party software and dependencies,Patch Management,"Covers the gap left by OS auto-updates, which often skip application-level packages."
+Configure a host-based firewall (ufw/firewalld),Network Security,"Blocks unnecessary inbound traffic with a short, one-time setup."
+Apply least-privilege security group / network rules,Network Security,Shrinks the attack surface by only opening ports that are actually needed.
+Enforce TLS for all web-facing services,Network Security,Protects data in transit; most cloud load balancers make this low effort to enable.
+Enable fail2ban or similar brute-force protection,Access Control,Automatically blocks repeated failed login attempts with minimal ongoing maintenance.
+Enable centralized logging (rsyslog / cloud logging service),Logging & Monitoring,Gives visibility into incidents after the fact; foundational for any later monitoring.
+Enable audit logging (auditd) on critical hosts,Logging & Monitoring,"Tracks privileged actions for investigation, required by many compliance baselines."
+Set up alerting for repeated failed login attempts,Logging & Monitoring,Turns raw logs into an early warning system without needing a full SOC.
+Set up automated vulnerability scanning,Vulnerability Management,Surfaces known CVEs on a schedule so gaps don't rely on manual review.
+Enable disk encryption at rest,Data Protection,Protects data if a disk or backup is stolen or improperly decommissioned.
+Configure regular encrypted backups with periodic restore tests,Data Protection,Limits damage from ransomware or accidental deletion; often the single highest-value control.
+"Remove unused packages, services, and default accounts",System Hardening,"Reduces the number of things that can be exploited, at essentially zero ongoing cost."
+"Deploy basic intrusion detection (e.g., OSSEC)",Logging & Monitoring,Adds detection capability for a small org without the cost of a full SIEM.
+Document and periodically test an incident response plan,Governance,Cheap to create and dramatically shortens recovery time when something does go wrong.
