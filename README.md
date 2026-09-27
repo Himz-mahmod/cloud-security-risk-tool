@@ -1,5 +1,9 @@
 # Cloud Security Risk Assessment Tool (Version 1)
 
+## Milestone One Code Review
+
+Watch the code review video here: https://youtu.be/olCzBg3x_1M
+
 A lightweight risk-prioritization tool built for **small organizations
 running Linux-based cloud infrastructure** — not enterprise CSPM. It
 answers one practical question: *with limited staff and budget, which
@@ -27,15 +31,12 @@ benefit for lowest operational effort."
    priorities, and a category-wise rollup.
 
 ## Project structure
-
-```
 cloud-security-risk-tool/
-├── app.py               # Streamlit UI (all 4 pages)
-├── risk_calculator.py   # Scoring logic, unit-testable and separate from UI
-├── controls.csv         # Reference library of common controls for small-org Linux/cloud setups
+├── app.py # Streamlit UI (all 4 pages)
+├── risk_calculator.py # Scoring logic, unit-testable and separate from UI
+├── controls.csv # Reference library of common controls for small-org Linux/cloud setups
 ├── requirements.txt
 └── README.md
-```
 
 Assessment data you enter is saved to a `findings.csv` file that is
 created automatically the first time you submit the form.
