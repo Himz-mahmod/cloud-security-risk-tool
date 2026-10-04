@@ -15,26 +15,33 @@ Pages:
     3. Priority Dashboard        -- ranked by priority score
     4. Assessment Summary        -- rollup stats
 
-Data is persisted to findings.csv in this folder (simple CSV storage
-for V1). SQLite/database integration is reserved for the CS 499
-enhancement, along with authentication, stronger validation, PDF report
-generation, CIS/NIST mapping, charts, automated testing, and an
-improved priority algorithm.
+Data is stored in a SQLite database (risk_tool.db) with related users,
+controls, and assessments tables. See database.py for the schema,
+constraints, and indexes, and migrate_csv_to_sqlite.py to bring over data
+from the earlier CSV-based versions.
 """
 
 import os
+from contextlib import closing
 
 import pandas as pd
 import streamlit as st
 
-from risk_calculator import (
-    calculate_priority_score,
-    calculate_risk_score,
-    get_priority_level,
+from auth import authenticate
+from database import (
+    DuplicateAssessmentError,
+    add_assessment,
+    clear_assessments,
+    default_db_path,
+    get_connection,
+    list_assessments,
+    list_library_controls,
+    seed_controls_from_csv,
 )
+from ranking import get_top_priority_controls
+from validators import ValidationError
 
-DATA_FILE = "findings.csv"
-CONTROLS_FILE = "controls.csv"
+CONTROLS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "controls.csv")
 FINDINGS_COLUMNS = [
     "Control Name",
     "Category",
@@ -44,35 +51,78 @@ FINDINGS_COLUMNS = [
     "Status",
     "Risk Score",
     "Priority Score",
+    "Weighted Priority Score",
     "Priority Level",
+    "Assessed By",
 ]
 
 st.set_page_config(page_title="Cloud Security Risk Assessment Tool", layout="wide")
 
 
-def load_findings() -> pd.DataFrame:
-    if os.path.exists(DATA_FILE):
-        return pd.read_csv(DATA_FILE)
-    return pd.DataFrame(columns=FINDINGS_COLUMNS)
+# ---------------------------------------------------------------------------
+# Authentication gate -- nothing below this runs until the user logs in.
+# ---------------------------------------------------------------------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("Cloud Security Risk Tool -- Login")
+    st.caption(
+        "Default account for first run: admin / changeme123 "
+        "(change this immediately in any real deployment)."
+    )
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        login_submitted = st.form_submit_button("Log In")
+
+    if login_submitted:
+        if authenticate(username, password):
+            st.session_state.authenticated = True
+            st.session_state.username = username
+            st.rerun()
+        else:
+            st.error("Invalid username or password.")
+
+    st.stop()  # Nothing past this point renders for an unauthenticated user.
 
 
-def save_findings(df: pd.DataFrame) -> None:
-    df.to_csv(DATA_FILE, index=False)
+@st.cache_resource
+def bootstrap_database(db_path: str) -> bool:
+    """Loads the reference control library once per server start (per database file)."""
+    with closing(get_connection(db_path)) as conn:
+        seed_controls_from_csv(conn, CONTROLS_FILE)
+    return True
 
 
-@st.cache_data
+def load_findings(levels=None, categories=None, order_by="id") -> pd.DataFrame:
+    """Reads assessments from the database. Filtering and ordering happen in SQL."""
+    with closing(get_connection()) as conn:
+        rows = list_assessments(conn, levels=levels, categories=categories, order_by=order_by)
+    return pd.DataFrame(rows, columns=FINDINGS_COLUMNS)
+
+
 def load_controls_library() -> pd.DataFrame:
-    return pd.read_csv(CONTROLS_FILE)
+    with closing(get_connection()) as conn:
+        rows = list_library_controls(conn)
+    return pd.DataFrame(
+        rows, columns=["Control Name", "Category", "Typical Benefit for Small Orgs"]
+    )
 
 
-if "findings" not in st.session_state:
-    st.session_state.findings = load_findings()
-
+bootstrap_database(default_db_path())
+findings_df = load_findings()
 controls_ref = load_controls_library()
 categories = sorted(controls_ref["Category"].unique().tolist())
 
 st.sidebar.title("🔒 Cloud Security Risk Tool")
 st.sidebar.caption("For small orgs running Linux-based cloud infrastructure")
+st.sidebar.markdown(f"**Logged in as:** {st.session_state.username}")
+if st.sidebar.button("Log Out"):
+    st.session_state.authenticated = False
+    st.session_state.pop("username", None)
+    st.rerun()
+st.sidebar.markdown("---")
 page = st.sidebar.radio(
     "Navigate",
     [
@@ -83,7 +133,7 @@ page = st.sidebar.radio(
     ],
 )
 st.sidebar.markdown("---")
-st.sidebar.metric("Controls Assessed So Far", len(st.session_state.findings))
+st.sidebar.metric("Controls Assessed So Far", len(findings_df))
 
 # ---------------------------------------------------------------------------
 # PAGE 1: Security Assessment Form
@@ -134,42 +184,45 @@ if page.startswith("1"):
         submitted = st.form_submit_button("Add Assessment")
 
     if submitted:
-        if not control_name or not str(control_name).strip():
-            st.error("Please provide a control name before submitting.")
+        try:
+            # add_assessment validates every field, rejects duplicates, and
+            # computes the scores, so the same rules apply no matter where
+            # data comes from. The database enforces them again with
+            # constraints.
+            with closing(get_connection()) as conn:
+                result = add_assessment(
+                    conn,
+                    control_name,
+                    category,
+                    likelihood,
+                    impact,
+                    effort,
+                    status,
+                    st.session_state.username,
+                )
+        except ValidationError as e:
+            st.error(str(e))
+        except DuplicateAssessmentError:
+            st.warning(
+                f"'{str(control_name).strip()}' has already been assessed under "
+                f"'{category}'. Duplicate entries are not allowed."
+            )
+        except ValueError:
+            st.error("Your account no longer exists. Log out and log in again.")
         else:
-            risk_score = calculate_risk_score(likelihood, impact)
-            priority_score = round(calculate_priority_score(risk_score, effort), 2)
-            priority_level = get_priority_level(risk_score)
-
-            new_row = pd.DataFrame(
-                [
-                    {
-                        "Control Name": control_name,
-                        "Category": category,
-                        "Likelihood": likelihood,
-                        "Impact": impact,
-                        "Effort": effort,
-                        "Status": status,
-                        "Risk Score": risk_score,
-                        "Priority Score": priority_score,
-                        "Priority Level": priority_level,
-                    }
-                ]
-            )
-            st.session_state.findings = pd.concat(
-                [st.session_state.findings, new_row], ignore_index=True
-            )
-            save_findings(st.session_state.findings)
-
+            findings_df = load_findings()
             st.success(
-                f"Added **{control_name}** — Risk Score: {risk_score} | "
-                f"Priority Score: {priority_score} | Level: **{priority_level}**"
+                f"Added **{str(control_name).strip()}**: "
+                f"Risk Score {result['risk_score']} | "
+                f"Priority Score {result['priority_score']} "
+                f"(Weighted: {result['weighted_priority_score']}) | "
+                f"Level: **{result['priority_level']}**"
             )
 
     st.markdown("---")
     st.subheader("Recently Added")
-    if len(st.session_state.findings) > 0:
-        st.dataframe(st.session_state.findings.tail(5), use_container_width=True)
+    if len(findings_df) > 0:
+        st.dataframe(findings_df.tail(5))
     else:
         st.caption("No assessments yet. Add your first control above.")
 
@@ -178,7 +231,7 @@ if page.startswith("1"):
 # ---------------------------------------------------------------------------
 elif page.startswith("2"):
     st.title("Risk Register")
-    df = st.session_state.findings
+    df = findings_df
 
     if len(df) == 0:
         st.info("No findings recorded yet. Add assessments on the Form page first.")
@@ -197,11 +250,11 @@ elif page.startswith("2"):
                 default=sorted(df["Category"].unique()),
             )
 
-        filtered = df[
-            df["Priority Level"].isin(level_filter) & df["Category"].isin(cat_filter)
-        ].sort_values("Risk Score", ascending=False)
+        filtered = load_findings(
+            levels=level_filter, categories=cat_filter, order_by="risk_desc"
+        )
 
-        st.dataframe(filtered, use_container_width=True)
+        st.dataframe(filtered)
         st.caption(f"Showing {len(filtered)} of {len(df)} total findings")
 
         st.download_button(
@@ -213,8 +266,8 @@ elif page.startswith("2"):
 
         with st.expander("Danger zone"):
             if st.button("🗑 Clear all findings"):
-                st.session_state.findings = pd.DataFrame(columns=FINDINGS_COLUMNS)
-                save_findings(st.session_state.findings)
+                with closing(get_connection()) as conn:
+                    clear_assessments(conn)
                 st.rerun()
 
 # ---------------------------------------------------------------------------
@@ -222,18 +275,21 @@ elif page.startswith("2"):
 # ---------------------------------------------------------------------------
 elif page.startswith("3"):
     st.title("Priority Dashboard")
-    df = st.session_state.findings
+    df = findings_df
 
     if len(df) == 0:
         st.info("No findings recorded yet. Add assessments on the Form page first.")
     else:
         st.write(
-            "Controls ranked by **Priority Score** (Risk Score ÷ Effort) — "
-            "the highest security benefit for the lowest operational effort "
-            "comes first."
+            "Controls ranked by **Weighted Priority Score**, a category "
+            "and compliance-status-aware version of Risk Score ÷ Effort, "
+            "so the highest real-world security benefit for the lowest "
+            "operational effort comes first."
         )
 
-        ranked = df.sort_values("Priority Score", ascending=False).reset_index(drop=True)
+        ranked = df.sort_values(
+            "Weighted Priority Score", ascending=False
+        ).reset_index(drop=True)
         ranked.index = ranked.index + 1
         ranked.index.name = "Rank"
         st.dataframe(
@@ -244,31 +300,39 @@ elif page.startswith("3"):
                     "Risk Score",
                     "Effort",
                     "Priority Score",
+                    "Weighted Priority Score",
                     "Priority Level",
                     "Status",
                 ]
-            ],
-            use_container_width=True,
+            ]
         )
 
         st.subheader("Top Quick Wins")
-        for rank, row in ranked.head(5).iterrows():
+        st.caption(
+            "Computed with a bounded heap (O(m log n)) instead of sorting "
+            "the full table, since only the top few results are needed here."
+        )
+        top_wins = get_top_priority_controls(
+            df.to_dict("records"), n=5, score_field="Weighted Priority Score"
+        )
+        for rank, row in enumerate(top_wins, start=1):
             st.markdown(
-                f"**#{rank}. {row['Control Name']}** — "
-                f"Priority Score {row['Priority Score']} ({row['Priority Level']}), "
-                f"Effort {row['Effort']}/3"
+                f"**#{rank}. {row['Control Name']}**: "
+                f"Weighted Priority Score {row['Weighted Priority Score']} "
+                f"({row['Priority Level']}), Effort {row['Effort']}/3"
             )
 
-        st.subheader("Priority Score by Control")
-        chart_data = ranked.set_index("Control Name")["Priority Score"]
+        st.subheader("Weighted Priority Score by Control")
+        chart_data = ranked.set_index("Control Name")["Weighted Priority Score"]
         st.bar_chart(chart_data)
+
 
 # ---------------------------------------------------------------------------
 # PAGE 4: Assessment Summary
 # ---------------------------------------------------------------------------
 else:
     st.title("Assessment Summary")
-    df = st.session_state.findings
+    df = findings_df
 
     if len(df) == 0:
         st.info("No findings recorded yet. Add assessments on the Form page first.")
@@ -285,11 +349,14 @@ else:
         c4.metric("Average Risk Score", avg_risk)
 
         st.subheader("Top 3 Priorities")
-        top3 = df.sort_values("Priority Score", ascending=False).head(3)
-        for _, row in top3.iterrows():
+        top3 = get_top_priority_controls(
+            df.to_dict("records"), n=3, score_field="Weighted Priority Score"
+        )
+        for row in top3:
             st.markdown(
-                f"- **{row['Control Name']}** ({row['Category']}) — "
-                f"{row['Priority Level']} risk, Priority Score {row['Priority Score']}"
+                f"- **{row['Control Name']}** ({row['Category']}): "
+                f"{row['Priority Level']} risk, Weighted Priority Score "
+                f"{row['Weighted Priority Score']}"
             )
 
         st.subheader("Category-wise Summary")
@@ -305,7 +372,7 @@ else:
             )
             .round(1)
         )
-        st.dataframe(cat_summary, use_container_width=True)
+        st.dataframe(cat_summary)
 
         st.subheader("Priority Level Distribution")
         st.bar_chart(df["Priority Level"].value_counts())

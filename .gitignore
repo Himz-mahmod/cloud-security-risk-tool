@@ -1,3 +1,6 @@
-
 __pycache__/
+.pytest_cache/
+venv/
 findings.csv
+users.json
+risk_tool.db
