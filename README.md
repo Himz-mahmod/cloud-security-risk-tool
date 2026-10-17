@@ -1,6 +1,10 @@
 # Cloud Security Risk Assessment Tool
 
-**Version 4: Databases enhancement (CS 499 Milestone Four)**
+**Final version: CS 499 Computer Science Capstone, Southern New Hampshire University**
+
+ePortfolio: https://himz-mahmod.github.io/cloud-security-risk-tool/
+
+The original Version 1 code, before any enhancement, is in [`original/`](original/).
 
 ## Milestone One Code Review
 
@@ -39,6 +43,8 @@ benefit for lowest operational effort."
 
 ```
 cloud-security-risk-tool/
+├── original/                   # Version 1 baseline, before any enhancement
+├── docs/                       # GitHub Pages ePortfolio
 ├── app.py                      # Streamlit UI (login gate + all 4 pages)
 ├── database.py                 # SQLite schema, constraints, indexes, parameterized queries
 ├── migrate_csv_to_sqlite.py    # One-time import of findings.csv and users.json
@@ -151,6 +157,7 @@ This opens the app in your browser at `http://localhost:8501`.
 
 **Algorithms and Data Structures (Milestone Three)**
 - Bounded-heap top-N retrieval, O(m log n) instead of a full sort
+- Ties at the top-N cutoff resolved the same way as a full sort (fixed in the final version, with regression tests)
 - Weighted priority score using category and compliance status
 
 **Databases (Milestone Four)**

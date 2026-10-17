@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithms | Tanvir ePortfolio</title>
+<meta name="description" content="Algorithms and data structures enhancement: heap top-N and weighted scoring.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="bar">
+<a class="brand" href="index.html">Tanvir<small>CS 499 ePortfolio</small></a>
+<nav aria-label="Portfolio sections"><ul><li><a href="index.html">Home</a></li><li><a href="code-review.html">Code review</a></li><li><a href="software-design.html">Software design</a></li><li><a href="algorithms.html" aria-current="page">Algorithms</a></li><li><a href="databases.html">Databases</a></li></ul></nav>
+</div></header>
+<main id="main">
+
+<p class="eyebrow">Enhancement 2</p>
+<h1>Algorithms and data structures</h1>
+<p class="lede">Ranking is the reason the tool exists, so this round made it faster, fairer and deterministic.</p>
+<div class="compare">
+<div class="panel before"><span class="tag">Version 1 (original)</span><ul><li>Priority = Risk Score / Effort, nothing else.</li><li>Full table sorted on every page load to show five rows: O(m log m).</li><li>Category and compliance status ignored.</li></ul></div>
+<div class="panel after"><span class="tag">Final version</span><ul><li>Weighted score using category weight and status multiplier.</li><li>Bounded min-heap keeps only the top n: O(m log n).</li><li>Deterministic tie-breaks, checked against a full sort in tests.</li></ul></div>
+</div>
+<figure>
+<svg viewBox="0 0 640 170" role="img" aria-labelledby="heapT heapD">
+<title id="heapT">Bounded heap for top-N</title>
+<desc id="heapD">Findings stream in one at a time. A heap of size n keeps the best n seen so far, with the worst kept item at the root. A new finding replaces the root only if it scores higher.</desc>
+<style>.b{fill:var(--surface);stroke:var(--line);stroke-width:1.5}.a{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}.t{font:14px system-ui,sans-serif;fill:var(--ink)}.s{font:12px system-ui,sans-serif;fill:var(--muted)}.l{stroke:var(--muted);stroke-width:1.5;fill:none}</style>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker></defs>
+<rect class="b" x="10" y="45" width="150" height="70" rx="8"/><text class="t" x="85" y="77" text-anchor="middle">m findings</text><text class="s" x="85" y="97" text-anchor="middle">scanned once</text>
+<path class="l" d="M160 80 H230" marker-end="url(#ar)"/>
+<rect class="a" x="232" y="20" width="200" height="120" rx="8"/><text class="t" x="332" y="48" text-anchor="middle">heap of size n</text>
+<circle class="b" cx="332" cy="78" r="16"/><text class="s" x="332" y="82" text-anchor="middle">worst</text>
+<circle class="b" cx="295" cy="116" r="13"/><circle class="b" cx="369" cy="116" r="13"/>
+<path class="l" d="M322 91 L303 106 M342 91 L361 106"/>
+<path class="l" d="M432 80 H500" marker-end="url(#ar)"/>
+<rect class="b" x="502" y="45" width="128" height="70" rx="8"/><text class="t" x="566" y="77" text-anchor="middle">top n, sorted</text><text class="s" x="566" y="97" text-anchor="middle">O(n log n)</text>
+<text class="s" x="332" y="162" text-anchor="middle">each new finding: compare with root, replace if better, O(log n)</text>
+</svg>
+<figcaption>The root of a min-heap is its smallest item, which here is the worst finding kept so far. That makes it cheap to compare against and cheap to evict.</figcaption>
+</figure>
+<div class="panel">
+<h3>Original code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/app.py">original/app.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/risk_calculator.py">original/risk_calculator.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/README.md">Version 1 README</a></div>
+<h3 style="margin-top:16px">Final code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/ranking.py">ranking.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/risk_calculator.py">risk_calculator.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/tests/test_ranking.py">tests/test_ranking.py</a></div>
+<h3 style="margin-top:16px">Narrative</h3><div class="links"><a href="files/Narrative_2_Algorithms.docx">Download as Word</a></div>
+</div>
+<h2>Artifact description</h2>
+<p>The artifact is the same Cloud Security Risk Assessment Tool. Version 1, built in September 2026, ranked findings with one formula, Risk Score divided by Effort, and found the top five quick wins by sorting the whole findings table each time the Priority Dashboard loaded. This enhancement replaced both.</p>
+<h2>Justification for inclusion</h2>
+<p>Ranking is the reason the tool exists. If the wrong control is at the top of the list, nothing else in the app matters. That made ranking the right place to show algorithmic thinking on a real problem instead of an isolated exercise. The work lives in <code>ranking.py</code>.</p>
+<ul><li><strong>Bounded min-heap for top-N.</strong> <code>get_top_priority_controls</code> keeps at most n items in a heap while it scans the findings. The root is always the worst item kept, so each new finding is compared once and, if better, replaces the root in O(log n). The total cost is O(m log n) instead of the full sort's O(m log m).</li><li><strong>Weighted priority score.</strong> <code>calculate_weighted_priority_score</code> multiplies the base score by a category weight and a compliance-status multiplier. An identity and access gap weighs 1.3 and a governance gap 0.7. A non-compliant control keeps its full score, a partial one keeps 60 percent and a compliant one keeps 10 percent, because compensating controls can still fail.</li><li><strong>Deterministic order.</strong> Ties are broken by Risk Score and then by control name, so the same data always gives the same list.</li></ul>
+<p>The skills shown are complexity analysis, heap data structures, tie-breaking design and testing an optimized algorithm against a simple reference version.</p>
+<h2>Reflection</h2>
+<p>My first heap version negated the scores so Python's min-heap would act as a max-heap, which is the usual trick. A test showed that it returned the wrong controls. For a bounded top-N heap I needed the opposite: the root has to be the worst item kept, so it can be evicted cheaply. Finding that bug through a test, not by reading the code, showed me why a cross-check against a plain sort is worth writing.</p>
+<p>In the final review I found a second bug. When two controls tied exactly at position n, the heap used input order to choose between them, so it could keep "Zebra" and drop "Alpha" while a full sort would do the reverse. My random cross-check had not caught it because its decimal scores almost never tied. I fixed the heap key so it compares names in reverse order, and I added two regression tests. One of them uses small integer scores so ties happen in most runs. The lesson is that a test only proves what its data exercises.</p>
+<p>The main trade-off is honesty about the weights. They are my estimates from common incident patterns, not a model fitted to incident data, and the code says so in a comment next to them. Calibrating them against real data is future work and part of the research paper I plan to write from this project.</p>
+<p><strong>Course outcomes.</strong></p>
+<ul><li><strong>Outcome 3 (algorithmic solutions and trade-offs): met.</strong> The heap, its complexity and the weighting trade-offs are explained and tested.</li><li><strong>Outcome 4 (techniques and tools): met.</strong> The optimized code is verified against a reference implementation.</li><li><strong>Outcome 5 (security mindset): partly met.</strong> The status multiplier keeps residual risk visible for compliant controls instead of treating it as zero.</li><li><strong>Outcomes 1 and 2: supported</strong> through clear comments and docstrings that explain each design choice to the next developer.</li></ul>
+
+<p class="ai"><strong>AI usage.</strong> I used Claude, a generative AI tool from Anthropic, to help draft and edit this text and to review and test code. I checked every statement against my own code, test results and experience, and I am responsible for the final content. Anthropic. (2026). <em>Claude</em> (Opus 5.5) [Large language model]. <a href="https://claude.ai">https://claude.ai</a></p>
+<div class="pager"><a href="software-design.html">&larr; Software design</a><a href="databases.html">Databases &rarr;</a></div>
+</main>
+<footer><div class="bar">Tanvir &middot; CS 499: Computer Science Capstone &middot; Southern New Hampshire University &middot; <a href="https://github.com/Himz-mahmod/cloud-security-risk-tool">Source on GitHub</a></div></footer>
+</body>
+</html>

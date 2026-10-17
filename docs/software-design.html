@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Software design | Tanvir ePortfolio</title>
+<meta name="description" content="Software design and engineering enhancement: login, validation, tests and CI.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="bar">
+<a class="brand" href="index.html">Tanvir<small>CS 499 ePortfolio</small></a>
+<nav aria-label="Portfolio sections"><ul><li><a href="index.html">Home</a></li><li><a href="code-review.html">Code review</a></li><li><a href="software-design.html" aria-current="page">Software design</a></li><li><a href="algorithms.html">Algorithms</a></li><li><a href="databases.html">Databases</a></li></ul></nav>
+</div></header>
+<main id="main">
+
+<p class="eyebrow">Enhancement 1</p>
+<h1>Software design and engineering</h1>
+<p class="lede">Turning a working prototype into software that checks who is using it, refuses bad input and tests itself.</p>
+<div class="compare">
+<div class="panel before"><span class="tag">Version 1 (original)</span><ul><li>No login. Anyone with the link could change data.</li><li>Input saved as entered. The same control could be assessed twice.</li><li>Scoring and validation mixed into page code.</li><li>No automated tests.</li></ul></div>
+<div class="panel after"><span class="tag">Final version</span><ul><li>Login gate with salted PBKDF2 password hashes.</li><li>UI-independent validation and duplicate checks in <code>validators.py</code>.</li><li>Every finding records who assessed it.</li><li>102 pytest tests, run by GitHub Actions on every push.</li></ul></div>
+</div>
+<div class="panel">
+<h3>Original code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/app.py">original/app.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/risk_calculator.py">original/risk_calculator.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/README.md">Version 1 README</a></div>
+<h3 style="margin-top:16px">Final code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/auth.py">auth.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/validators.py">validators.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/app.py">app.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/tree/main/tests">tests/</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/.github/workflows/tests.yml">CI workflow</a></div>
+<h3 style="margin-top:16px">Narrative</h3><div class="links"><a href="files/Narrative_1_Software_Design.docx">Download as Word</a></div>
+</div>
+<h2>Artifact description</h2>
+<p>The artifact is the Cloud Security Risk Assessment Tool, a Python and Streamlit web application for small organizations that run Linux-based cloud infrastructure. A user scores each security control on likelihood, impact and implementation effort, and the tool ranks the controls so a small team knows what to fix first. I built Version 1 in September 2026, during CS 499, as the baseline for this portfolio. It had four pages, stored findings in a CSV file, had no login and no tests, and fit in two Python files.</p>
+<h2>Justification for inclusion</h2>
+<p>I chose this artifact because it solves a problem I see at work: small teams face long lists of security findings and no clear order to fix them in. A security tool that is itself insecure would undercut its own purpose, so software design and engineering was the right first enhancement.</p>
+<p>The enhancement added four components:</p>
+<ul><li><strong><code>auth.py</code></strong> stores passwords as salted PBKDF2-HMAC-SHA256 hashes with 100,000 iterations and verifies them with <code>hmac.compare_digest</code>, a constant-time comparison. The app shows a login screen before any page.</li><li><strong><code>validators.py</code></strong> checks score ranges, control names, categories, statuses and duplicates. It does not depend on Streamlit, so the same rules apply wherever data comes from.</li><li><strong><code>tests/</code></strong> holds a pytest suite. It started with 33 tests in this milestone and has 102 in the final version.</li><li><strong><code>.github/workflows/tests.yml</code></strong> runs the full suite on GitHub Actions on every push and pull request to <code>main</code>.</li></ul>
+<p>Before the enhancement, anyone could open the app, save any value and assess the same control twice. Nothing recorded who entered a finding. After it, every user logs in, every finding records who assessed it, and bad input is refused with a clear message. The skills shown are modular design, secure password storage, defensive validation, test automation and continuous integration.</p>
+<h2>Reflection</h2>
+<p>The biggest lesson was that code is only as testable as its structure allows. Streamlit reruns the whole script on every click, so logic inside the page code is hard to test. Moving validation and scoring into plain modules made them easy to test and easier to read. Login state was a related challenge. Because the script reruns, I had to keep the logged-in user in <code>st.session_state</code> and check it at the top of every run.</p>
+<p>I was also new to Git, and I work on Windows. Learning to commit, push and read a failed CI run took real time, but now a green check on GitHub tells me and any reviewer that the code still works. I followed the plan from my code review closely, and I used my instructor's feedback on each milestone to improve the next one. In the final version I added the untouched Version 1 code to an <code>original</code> folder, so a reviewer can compare before and after directly.</p>
+<p><strong>Course outcomes.</strong></p>
+<ul><li><strong>Outcome 4 (techniques and tools): met.</strong> Automated tests, CI and a modular design are industry practice.</li><li><strong>Outcome 5 (security mindset): met.</strong> Hashed passwords, constant-time comparison and validation close the gaps the code review found.</li><li><strong>Outcome 1 (collaborative environments): met.</strong> CI and a readable test suite let other developers change the code safely.</li><li><strong>Outcome 2 (communication): partly met here.</strong> The README and comments improved, and the code review video and this portfolio complete it.</li><li><strong>Outcome 3 (algorithmic solutions): not the focus.</strong> The algorithms enhancement covers it.</li></ul>
+
+<p class="ai"><strong>AI usage.</strong> I used Claude, a generative AI tool from Anthropic, to help draft and edit this text and to review and test code. I checked every statement against my own code, test results and experience, and I am responsible for the final content. Anthropic. (2026). <em>Claude</em> (Opus 5.5) [Large language model]. <a href="https://claude.ai">https://claude.ai</a></p>
+<div class="pager"><a href="code-review.html">&larr; Code review</a><a href="algorithms.html">Algorithms &rarr;</a></div>
+</main>
+<footer><div class="bar">Tanvir &middot; CS 499: Computer Science Capstone &middot; Southern New Hampshire University &middot; <a href="https://github.com/Himz-mahmod/cloud-security-risk-tool">Source on GitHub</a></div></footer>
+</body>
+</html>

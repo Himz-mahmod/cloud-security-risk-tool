@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tanvir | CS 499 ePortfolio</title>
+<meta name="description" content="Professional self-assessment and ePortfolio for CS 499 at SNHU.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="bar">
+<a class="brand" href="index.html">Tanvir<small>CS 499 ePortfolio</small></a>
+<nav aria-label="Portfolio sections"><ul><li><a href="index.html" aria-current="page">Home</a></li><li><a href="code-review.html">Code review</a></li><li><a href="software-design.html">Software design</a></li><li><a href="algorithms.html">Algorithms</a></li><li><a href="databases.html">Databases</a></li></ul></nav>
+</div></header>
+<main id="main">
+
+<p class="eyebrow">CS 499 ePortfolio</p>
+<h1>Professional self-assessment</h1>
+<p class="lede">Computer Science, Southern New Hampshire University. Focused on security and infrastructure.</p>
+<div class="stats">
+<div class="stat"><b>102</b><span>automated tests, run on every push</span></div>
+<div class="stat"><b>3</b><span>rounds of improvement on one artifact</span></div>
+<div class="stat"><b>~1,900&times;</b><span>faster top-5 query with an index, 50,000 rows</span></div>
+<div class="stat"><b>O(m log n)</b><span>top-N ranking, down from a full sort</span></div>
+</div>
+<p>I am finishing my Bachelor of Science in Computer Science at Southern New Hampshire University. I also work as a systems administration intern at YouBloom, where I support production Linux servers, monitor AWS services with CloudWatch and SNS, write PowerShell automation and help trace incidents to their root cause. That work pulled me toward security and infrastructure. It also shaped the capstone in this portfolio: a tool that helps a small organization decide which security control to fix first when it has little staff and a small budget.</p>
+<h2>What the program and this portfolio did for me</h2>
+<p>My early courses taught me to write code that runs. Later courses taught me to write code that other people can trust: code that is tested, documented and built to refuse bad input. The capstone made me apply all of that to one project over seven course modules. I started with a Streamlit app of about 370 lines that saved its data to a CSV file. I finished with an application of about 1,450 lines plus 900 lines of tests. It has a login, a SQLite database, a ranking module, 102 automated tests and a pipeline that runs those tests on every push to GitHub.</p>
+<p>Working in a public repository changed how I write. I now write each commit, code comment and README section for a reader who has never seen the project. The program also made my goals clearer. I want to work in security operations or infrastructure engineering, where software decisions meet live systems. The question behind my capstone, whether ranking controls by effort as well as risk helps small teams make better decisions, is one I plan to keep studying after I graduate.</p>
+<h2>Collaborating in a team environment</h2>
+<p>At YouBloom I work inside an infrastructure team that shares one production environment. A change I make can page someone else at night, so I learned to announce changes before I make them, record what I did and write incident notes that the next person can act on. I brought the same habits to the capstone. I recorded the code review video for an audience of peers or a manager. It walks through the existing code, names each weakness and explains the plan before any code changed. The repository runs its full test suite through GitHub Actions on every push and pull request, which is the guard a team depends on when several people commit to one codebase. When my instructor told me a milestone was missing its narrative, I resubmitted the code and the narrative together so the reviewer had the complete package in one place.</p>
+<h2>Communicating with stakeholders</h2>
+<p>A stakeholder needs a decision they can act on, not a lecture. In CS 465 I built a full stack web application with the MEAN stack for a client scenario, a travel company called Travlr Getaways. That course taught me that requirements come from more than one place. The rubric, the client brief and the weekly announcements could each change what "done" meant, and missing one of them cost me points. I now read every source before I start work.</p>
+<p>The capstone tool is itself a communication tool. Its Priority Dashboard turns a register of scored findings into a short list of quick wins that a non-technical owner can act on, and its Assessment Summary gives a one-screen rollup by category. My job as a senior sales assistant at Copenhagen Tourist Point trains the same skill every day. I explain products to customers from many countries in plain words, usually in under a minute.</p>
+<h2>Data structures and algorithms</h2>
+<p>I pick a data structure by asking what the program actually needs. The original dashboard sorted every finding each time the page loaded, only to show five of them. I replaced the full sort with a bounded min-heap that keeps the best n items while it scans the data. That costs O(m log n) instead of O(m log m), where m is the number of findings. I also replaced the single Risk divided by Effort formula with a weighted score that accounts for each control's category and its compliance status.</p>
+<p>Testing found two real bugs in that work. The first was a heap ordering mistake that returned the wrong controls. The second, which I found in my final review, was that ties exactly at the cutoff were settled by input order instead of by name. I fixed both and added regression tests. One of the new tests forces frequent ties, because the original random test used decimal scores that almost never tie, which is how the second bug slipped through.</p>
+<h2>Software engineering and databases</h2>
+<p>I treat design as a set of trade-offs I should be able to explain. I kept the scoring logic in plain Python modules, separate from the Streamlit interface, so it can be tested without a browser. Validation has its own module, so its rules hold no matter which page calls them. For storage I chose SQLite over a database server. The target user is a small team that wants one file and no server to maintain, and SQLite still provides foreign keys, CHECK and UNIQUE constraints, transactions and indexes.</p>
+<p>The schema has three related tables, and the database rejects bad data even if the application code is bypassed. On 50,000 generated rows, an index made the top-five query about 1,900 times faster. The index on priority level helped only about three times, because that column holds just four distinct values. Measuring both taught me to check whether an index pays off instead of assuming it does. A migration script moves old CSV and JSON data into the database in a single transaction. It also handles CSV files that Excel saved with a byte-order mark or with semicolons as delimiters.</p>
+<h2>Security</h2>
+<p>The tool exists to improve security, so security shaped it from the first enhancement. Version 1 had no login and trusted every input. The final version stores passwords as salted PBKDF2-HMAC-SHA256 hashes and checks them with a constant-time comparison. Each value is validated before it reaches the database, and the database checks it again with its own constraints. Every SQL statement uses bound parameters. In the one place a parameter cannot work, the ORDER BY clause, the code picks from a fixed whitelist.</p>
+<p>I also know where the tool still falls short. It uses 100,000 PBKDF2 iterations, which is below the 600,000 that the OWASP Password Storage Cheat Sheet recommends for this algorithm. The default admin account must be changed after the first login. I documented both limits in the repository instead of leaving them for someone else to discover.</p>
+<h2>How this portfolio fits together</h2>
+<p>This portfolio follows one artifact, the Cloud Security Risk Assessment Tool, through three rounds of improvement. My instructor approved using a single artifact for all three categories. Each round built on the one before it, the way real software grows.</p>
+<ul><li><strong>Code review.</strong> A video walkthrough of Version 1, its weaknesses and the plan.</li><li><strong>Software design and engineering.</strong> A login with hashed passwords, input validation, automated tests and continuous integration.</li><li><strong>Algorithms and data structures.</strong> Heap-based top-N ranking and a weighted priority score.</li><li><strong>Databases.</strong> A SQLite schema with constraints, indexes, safe queries and a transactional migration.</li></ul>
+<p>Each page shows the original code next to the final code and includes a narrative about what I learned. Together they cover a full cycle of software work: review, plan, build, test, measure and document.</p>
+<div class="cards">
+<a class="card" href="code-review.html"><span class="num">Code review</span><h3>Version 1 walkthrough</h3><p>Video review of the original code and the plan.</p></a>
+<a class="card" href="software-design.html"><span class="num">Enhancement 1</span><h3>Software design and engineering</h3><p>Login, validation, tests and CI.</p></a>
+<a class="card" href="algorithms.html"><span class="num">Enhancement 2</span><h3>Algorithms and data structures</h3><p>Heap top-N and weighted scoring.</p></a>
+<a class="card" href="databases.html"><span class="num">Enhancement 3</span><h3>Databases</h3><p>SQLite schema, constraints and migration.</p></a>
+</div>
+<h2>Where each course outcome is shown</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Course outcome</th><th>Evidence in this portfolio</th></tr></thead>
+<tbody><tr><td>1. Collaborative environments</td><td>Code review video for peers and managers. CI runs every test on each push and pull request. Comments and docstrings explain each design choice.</td></tr><tr><td>2. Communication</td><td>Code review video, three narratives, the README and this site, each written for its audience.</td></tr><tr><td>3. Algorithms and trade-offs</td><td>Heap-based top-N in O(m log n), weighted priority score, SQLite over a server database, measured index trade-offs.</td></tr><tr><td>4. Techniques and tools</td><td>102 pytest tests, GitHub Actions, transactional migration, index benchmarks.</td></tr><tr><td>5. Security mindset</td><td>Salted PBKDF2 hashing, constant-time comparison, layered validation, parameterized queries, an ORDER BY whitelist, database constraints and documented limits.</td></tr></tbody>
+</table></div>
+<div class="panel"><h3>Downloads and source</h3><div class="links"><a href="files/Professional_Self_Assessment.docx">Self-assessment (Word)</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool">Full repository on GitHub</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/tree/main/original">Original Version 1 code</a></div></div>
+
+<p class="ai"><strong>AI usage.</strong> I used Claude, a generative AI tool from Anthropic, to help draft and edit this text and to review and test code. I checked every statement against my own code, test results and experience, and I am responsible for the final content. Anthropic. (2026). <em>Claude</em> (Opus 5.5) [Large language model]. <a href="https://claude.ai">https://claude.ai</a></p>
+<div class="pager"><span></span><a href="code-review.html">Code review &rarr;</a></div>
+</main>
+<footer><div class="bar">Tanvir &middot; CS 499: Computer Science Capstone &middot; Southern New Hampshire University &middot; <a href="https://github.com/Himz-mahmod/cloud-security-risk-tool">Source on GitHub</a></div></footer>
+</body>
+</html>

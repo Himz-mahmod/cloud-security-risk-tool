@@ -95,6 +95,44 @@ def test_get_top_priority_controls_deterministic_tie_break_by_risk_then_name():
     assert [r["Control Name"] for r in top] == ["Mango", "Alpha", "Zebra"]
 
 
+def test_tie_at_the_cutoff_keeps_the_alphabetically_first_control():
+    """
+    Regression test. When two controls tie exactly at position n, the heap
+    must keep the one a full sort would keep. The earlier version kept
+    whichever came later in the input, so this returned Zebra.
+    """
+    rows = [
+        make_row("Alpha", priority_score=10, risk_score=10),
+        make_row("Zebra", priority_score=10, risk_score=10),
+    ]
+    assert [r["Control Name"] for r in get_top_priority_controls(rows, n=1)] == ["Alpha"]
+    # Input order must not matter.
+    assert [r["Control Name"] for r in get_top_priority_controls(rows[::-1], n=1)] == ["Alpha"]
+
+
+def test_heap_matches_full_sort_when_scores_tie_often():
+    """
+    The random cross-check below uses decimal scores that rarely tie, which
+    is how the cutoff bug slipped through. This version draws integer
+    scores from a small range so ties at the cutoff happen in most runs.
+    """
+    random.seed(7)
+    for _ in range(200):
+        rows = [
+            make_row(f"C{random.randint(0, 99):02d}x{i}",
+                     priority_score=random.randint(1, 3),
+                     risk_score=random.randint(1, 3))
+            for i in range(random.randint(1, 25))
+        ]
+        n = random.randint(1, 8)
+        expected = sorted(
+            rows, key=lambda r: (-r["Priority Score"], -r["Risk Score"], r["Control Name"])
+        )[:n]
+        assert [r["Control Name"] for r in get_top_priority_controls(rows, n=n)] == [
+            r["Control Name"] for r in expected
+        ]
+
+
 def test_get_top_priority_controls_empty_input():
     assert get_top_priority_controls([], n=5) == []
 

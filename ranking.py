@@ -85,6 +85,30 @@ def calculate_weighted_priority_score(
     return round(base_score, 2)
 
 
+class _ReverseName:
+    """
+    Wraps a control name so that comparisons run in reverse alphabetical
+    order. The heap keeps its *worst* kept item at the root, and among
+    equal scores the worst item is the one that comes LAST alphabetically.
+    Numbers can be negated to flip their order; strings cannot, so this
+    wrapper does the same job for the name.
+    """
+
+    __slots__ = ("name",)
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __lt__(self, other):
+        return self.name > other.name
+
+    def __gt__(self, other):
+        return self.name < other.name
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+
 def get_top_priority_controls(findings, n: int = 5, score_field: str = "Priority Score"):
     """
     Returns the top n findings ranked by score_field, using a bounded
@@ -113,11 +137,24 @@ def get_top_priority_controls(findings, n: int = 5, score_field: str = "Priority
     for insertion_order, row in enumerate(findings):
         # Store the RAW (non-negated) sort value. A plain min-heap's
         # root (heap[0]) is always the *smallest* item -- which, for
-        # un-negated (score, risk, order) tuples, is exactly the
+        # un-negated (score, risk, reversed-name) tuples, is exactly the
         # *worst* of the n items we are currently keeping. That is
         # precisely what we want at the root: something cheap to
         # compare a new candidate against, and cheap to evict.
-        sort_value = (row[score_field], row["Risk Score"], insertion_order)
+        #
+        # The name is part of the key so that ties at the cutoff are
+        # resolved the same way the final sort resolves them. An earlier
+        # version used insertion order here, which meant that when two
+        # controls tied exactly at position n, the heap kept whichever
+        # came later in the data instead of the alphabetically first one.
+        # insertion_order stays as the last element only so two rows with
+        # identical names never fall through to comparing the dicts.
+        sort_value = (
+            row[score_field],
+            row["Risk Score"],
+            _ReverseName(row["Control Name"]),
+            -insertion_order,
+        )
         candidate = (sort_value, row)
 
         if len(heap) < n:

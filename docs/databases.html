@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Databases | Tanvir ePortfolio</title>
+<meta name="description" content="Databases enhancement: SQLite schema, constraints, indexes and migration.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="bar">
+<a class="brand" href="index.html">Tanvir<small>CS 499 ePortfolio</small></a>
+<nav aria-label="Portfolio sections"><ul><li><a href="index.html">Home</a></li><li><a href="code-review.html">Code review</a></li><li><a href="software-design.html">Software design</a></li><li><a href="algorithms.html">Algorithms</a></li><li><a href="databases.html" aria-current="page">Databases</a></li></ul></nav>
+</div></header>
+<main id="main">
+
+<p class="eyebrow">Enhancement 3</p>
+<h1>Databases</h1>
+<p class="lede">Replacing flat files with a SQLite database that protects its own data.</p>
+<div class="compare">
+<div class="panel before"><span class="tag">Version 1 (original)</span><ul><li>Findings in <code>findings.csv</code>, accounts in <code>users.json</code>.</li><li>No link between a finding, its control and its author.</li><li>Each save rewrote the whole file.</li><li>Every filter scanned every row. Any string accepted in any column.</li></ul></div>
+<div class="panel after"><span class="tag">Final version</span><ul><li>Three related tables with foreign keys.</li><li>CHECK and UNIQUE constraints enforced by the database.</li><li>Indexes on the columns the pages filter and sort by.</li><li>Bound parameters everywhere, plus a transactional migration.</li></ul></div>
+</div>
+<div class="stats">
+<div class="stat"><b>~1,900&times;</b><span>faster top-5 query with its index</span></div>
+<div class="stat"><b>~3&times;</b><span>faster priority-level filter (4 distinct values)</span></div>
+<div class="stat"><b>50,000</b><span>generated rows in the benchmark</span></div>
+</div>
+<figure>
+<svg viewBox="0 0 640 320" role="img" aria-labelledby="erT erD">
+<title id="erT">Database schema</title>
+<desc id="erD">Three tables. Each assessment references one control and one user through foreign keys. A control can have at most one assessment.</desc>
+<style>.b{fill:var(--surface);stroke:var(--line);stroke-width:1.5}.a{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}.t{font:14px system-ui,sans-serif;fill:var(--ink)}.s{font:12px ui-monospace,Consolas,monospace;fill:var(--muted)}.l{stroke:var(--muted);stroke-width:1.5;fill:none}</style>
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker></defs>
+<rect class="b" x="10" y="20" width="190" height="127" rx="8"/><text class="t" x="22" y="43" font-weight="600">users</text><line class="l" x1="10" y1="52" x2="200" y2="52"/><text class="s" x="22" y="72">id  PK</text><text class="s" x="22" y="93">username  UNIQUE, NOCASE</text><text class="s" x="22" y="114">password_hash</text><text class="s" x="22" y="135">created_at</text><rect class="a" x="215" y="20" width="220" height="253" rx="8"/><text class="t" x="227" y="43" font-weight="600">assessments</text><line class="l" x1="215" y1="52" x2="435" y2="52"/><text class="s" x="227" y="72">id  PK</text><text class="s" x="227" y="93">control_id  FK, UNIQUE</text><text class="s" x="227" y="114">assessed_by  FK</text><text class="s" x="227" y="135">likelihood  CHECK 1-5</text><text class="s" x="227" y="156">impact  CHECK 1-5</text><text class="s" x="227" y="177">effort  CHECK 1-3</text><text class="s" x="227" y="198">status  CHECK</text><text class="s" x="227" y="219">risk_score  CHECK 1-25</text><text class="s" x="227" y="240">weighted_priority_score</text><text class="s" x="227" y="261">priority_level  CHECK</text><rect class="b" x="452" y="20" width="180" height="169" rx="8"/><text class="t" x="464" y="43" font-weight="600">controls</text><line class="l" x1="452" y1="52" x2="632" y2="52"/><text class="s" x="464" y="72">id  PK</text><text class="s" x="464" y="93">name</text><text class="s" x="464" y="114">category</text><text class="s" x="464" y="135">benefit</text><text class="s" x="464" y="156">is_library</text><text class="s" x="464" y="177">UNIQUE(name, category)</text>
+<path class="l" d="M215 110 C207 110 207 68 202 68" marker-end="url(#ar2)"/>
+<path class="l" d="M435 89 C444 89 444 68 450 68" marker-end="url(#ar2)"/>
+<text class="s" x="10" y="304">Indexes: weighted_priority_score, priority_level, assessed_by, controls.category</text>
+</svg>
+<figcaption>Foreign keys are switched on for every connection. ON DELETE RESTRICT stops a user or control with assessments from being deleted.</figcaption>
+</figure>
+<div class="panel">
+<h3>Original code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/app.py">original/app.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/risk_calculator.py">original/risk_calculator.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/original/README.md">Version 1 README</a></div>
+<h3 style="margin-top:16px">Final code</h3><div class="links"><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/database.py">database.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/migrate_csv_to_sqlite.py">migrate_csv_to_sqlite.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/benchmark_indexes.py">benchmark_indexes.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/tests/test_database.py">tests/test_database.py</a><a href="https://github.com/Himz-mahmod/cloud-security-risk-tool/blob/main/tests/test_migration.py">tests/test_migration.py</a></div>
+<h3 style="margin-top:16px">Narrative</h3><div class="links"><a href="files/Narrative_3_Databases.docx">Download as Word</a></div>
+</div>
+<h2>Artifact description</h2>
+<p>The artifact is the Cloud Security Risk Assessment Tool. Version 1, built in September 2026, saved every finding to <code>findings.csv</code>, and the Milestone Two version added a <code>users.json</code> file for accounts. This enhancement replaced both files with a SQLite database.</p>
+<h2>Justification for inclusion</h2>
+<p>My code review found four problems with flat-file storage. Nothing linked a finding to its control or to the user who entered it. Every save rewrote the whole file, so two saves at once could lose data. Every filter scanned every row. The storage layer accepted any string in any column. A risk register that can silently lose or corrupt findings cannot be trusted, so storage needed a real database.</p>
+<ul><li><strong>Schema.</strong> Three tables, <code>users</code>, <code>controls</code> and <code>assessments</code>, linked by foreign keys that are switched on for every connection.</li><li><strong>Constraints.</strong> CHECK constraints on likelihood (1 to 5), impact (1 to 5), effort (1 to 3), status, risk score and priority level. UNIQUE constraints stop a control from being assessed twice.</li><li><strong>Indexes</strong> on the weighted score, priority level, category and assessor, which are the columns the pages filter and sort by.</li><li><strong>Safe queries.</strong> Every value is a bound parameter. ORDER BY cannot take a parameter, so <code>list_assessments</code> picks the sort order from a fixed whitelist.</li><li><strong>Migration.</strong> <code>migrate_csv_to_sqlite.py</code> imports the old CSV and JSON data in one transaction, recomputes scores instead of trusting the file, skips and counts bad rows, and is safe to run twice.</li></ul>
+<p>I chose SQLite over a database server because the target user is a small team that wants one file and nothing extra to run. SQLite gives up concurrent writes from many machines, which this tool does not need, and keeps the integrity features it does need. The skills shown are relational schema design, data integrity constraints, indexing, injection-safe queries, transactional data migration and benchmarking.</p>
+<h2>Reflection</h2>
+<p>I learned to measure before I claim a speed-up. <code>benchmark_indexes.py</code> generates 50,000 rows and times queries with and without the indexes. The top-five query ran about 1,900 times faster with its index. The priority-level filter improved only about three times, because that column has just four values, so the index narrows the search far less. I would not have predicted that difference without measuring it.</p>
+<p>Real files caused the hardest problems. CSV files saved by Excel can start with a byte-order mark, use Windows line endings or use semicolons as delimiters, and my first importer failed on all three. I added handling and a test for each case. Testing also exposed a commit in the middle of the migration: creating the default admin account committed the transaction early, so a later failure could leave half the data behind. I added a <code>commit=False</code> option and a test that forces a failure and checks that nothing was written.</p>
+<p>My instructor's feedback on an earlier milestone, that its narrative was missing, taught me to check the whole submission package and not only the code. For the final version I added a schema diagram to this page, added the original Version 1 code to the repository and checked every claim in this narrative against the code and test output. Two limits remain: the app cannot yet edit or delete a single assessment, and the PBKDF2 iteration count should rise to the 600,000 that OWASP currently recommends.</p>
+<p><strong>Course outcomes.</strong></p>
+<ul><li><strong>Outcome 5 (security mindset): met.</strong> Parameterized queries, the ORDER BY whitelist and database-level constraints defend against injection and bad data.</li><li><strong>Outcome 4 (techniques and tools): met.</strong> Transactions, indexes, a repeatable migration and benchmarks are standard database practice.</li><li><strong>Outcome 3 (design trade-offs): met.</strong> The SQLite choice and the index results are measured and explained.</li><li><strong>Outcome 2 (communication): met.</strong> The README and this page document the schema for other developers.</li><li><strong>Outcome 1 (collaborative environments): supported.</strong> Constraints protect the data even from a teammate's future code that skips validation.</li></ul>
+
+<p class="ai"><strong>AI usage.</strong> I used Claude, a generative AI tool from Anthropic, to help draft and edit this text and to review and test code. I checked every statement against my own code, test results and experience, and I am responsible for the final content. Anthropic. (2026). <em>Claude</em> (Opus 5.5) [Large language model]. <a href="https://claude.ai">https://claude.ai</a></p>
+<div class="pager"><a href="algorithms.html">&larr; Algorithms</a><span></span></div>
+</main>
+<footer><div class="bar">Tanvir &middot; CS 499: Computer Science Capstone &middot; Southern New Hampshire University &middot; <a href="https://github.com/Himz-mahmod/cloud-security-risk-tool">Source on GitHub</a></div></footer>
+</body>
+</html>
